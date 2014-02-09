@@ -6,6 +6,8 @@ use DateTime::Format::RFC3339;
 use DateTime;
 use Carp;
 
+our $VERSION = "0.50";
+
 sub new{
     my ($class, %options) = @_;
 
@@ -56,7 +58,6 @@ sub _process_folder{
 
         # a google document: export to preferred format
         if ($child->can( "exportLinks" )){
-#~             next unless $self->_should_download($child, $local_file);
             next unless $self->{download_condition}
                     ->($self, $child, $local_file);
             print "$path$file_name ..exporting\n";
@@ -77,7 +78,6 @@ sub _process_folder{
 
         # pdfs and the like get downloaded directly
         if ($child->can( "downloadUrl" )){
-#~             next unless $self->_should_download($child, $local_file);
             next unless $self->{download_condition}
                     ->($self, $child, $local_file);
             print "$path$file_name ..downloading\n";
@@ -116,6 +116,8 @@ sub _should_download{
 
 }
 1;
+
+__END__
 
 =head1 NAME
 
@@ -191,11 +193,13 @@ At the moment, remote_root must not contain slashes in the file names of its fol
     'Folder/Containing/Letters A/B'
 
 Because folder "Letters A/B" contains a slash:
+
     Folder
          `--Containing
                      `--Letters A/B
 
 This will be resolved to:
+
     Folder
          `--Containing
                      `--Letters A
