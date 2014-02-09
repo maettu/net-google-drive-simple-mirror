@@ -16,7 +16,13 @@ use lib '../lib';
 use Net::Google::Drive::Simple::Mirror;
 
 my $google_docs = Net::Google::Drive::Simple::Mirror->new(
-    remote_root             => 'Mirror/Test/Folder',
-    local_root              => 'test_data_mirror',
-    preferred_export_format => 'opendocument',
+    remote_root   => 'Mirror/Test/Folder',
+    local_root    => 'test_data_mirror',
+    export_format => ['opendocument','html'],
+    download_condition => sub {
+        say "simply download everything";
+        return 1;
+    }
 );
+
+$google_docs->mirror();

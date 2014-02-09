@@ -25,7 +25,7 @@ sub new{
         remote_root_ID          => $remote_root_ID,
         export_format           => ['opendocument', 'html'],
         download_condition      => \&_should_download,
-        force                   => undef,
+        force                   => undef,       # XXX move this to mirror()
         net_google_drive_simple => $gd,
 
         %options
@@ -35,7 +35,63 @@ sub new{
 }
 
 sub mirror{
+    my $self = shift;
 
+    _process_folder(
+        $self,
+        $self->{remote_root_ID},
+        $self->{local_root}
+    );
+}
+
+sub _process_folder{
+    my ($self, $folder_id, $path) = @_;
+    my $gd = $self->{net_google_drive_simple};
+    my $children = $gd->children_by_folder_id($folder_id);
+
+    for my $child (@$children){
+        my $file_name = $child->title();
+        $file_name =~ s{/}{_};
+        my $local_file = $path.$file_name;
+
+        # a google document: export to preferred format
+        if ($child->can( "exportLinks" )){
+#~             next unless $self->_should_download($child, $local_file);
+            next unless $self->{download_condition}
+                    ->($self, $child, $local_file);
+            print "$path$file_name ..exporting\n";
+
+            my $type;
+            FOUND:
+            foreach my $preferred_type (@{$self->{export_format}}){
+                foreach my $t (keys %{$child->exportLinks()}){
+                    $type = $t;
+                    last FOUND if $t =~ /$preferred_type/;
+                }
+            }
+
+            my $url = $child->exportLinks()->{$type};
+            $gd->download($url, $local_file);
+            next;
+        }
+
+        # pdfs and the like get downloaded directly
+        if ($child->can( "downloadUrl" )){
+#~             next unless $self->_should_download($child, $local_file);
+            next unless $self->{download_condition}
+                    ->($self, $child, $local_file);
+            print "$path$file_name ..downloading\n";
+            $gd->download( $child, $local_file);
+            next;
+        }
+
+        # if we reach this, we could not "fetch" the file. A dir, then..
+        mkdir ($path.$file_name)
+            unless -d $path.$file_name;
+
+        _process_folder($self, $child->id(), $path.$file_name.'/');
+
+    }
 }
 
 
@@ -121,6 +177,10 @@ download_condition: reference to a sub that takes the remote file name and the l
     # XXX put _should_download() here.
 
 force: download all files and replace local copies.
+
+=item C<mirror()>
+
+Recursively mirrors Google Drive folder to local folder.
 
 =back
 
