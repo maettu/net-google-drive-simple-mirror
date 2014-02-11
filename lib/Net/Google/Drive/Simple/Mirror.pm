@@ -113,8 +113,8 @@ sub _should_download{
     else {
         return 1;
     }
-
 }
+
 1;
 
 __END__
@@ -176,7 +176,27 @@ Google Doc files may be exported to several formats. To get an idea of available
 Now, specify strings that your preferred types match against. The default is ['opendocument', 'html']
 
 download_condition: reference to a sub that takes the remote file name and the local file name as parameters. Returns true or false. The standard implementation is:
-    # XXX put _should_download() here.
+
+    sub _should_download{
+        my ($self, $remote_file, $local_file) = @_;
+
+        return 1 if $self->{force};
+
+        my $date_time_parser = DateTime::Format::RFC3339->new();
+
+        my $local_epoch =  (stat($local_file))[9];
+        my $remote_epoch = $date_time_parser
+                                ->parse_datetime
+                                    ($remote_file->modifiedDate())
+                                ->epoch();
+
+        if (-f $local_file and $remote_epoch < $local_epoch ){
+            return 0;
+        }
+        else {
+            return 1;
+        }
+    }
 
 force: download all files and replace local copies.
 
@@ -190,9 +210,9 @@ Recursively mirrors Google Drive folder to local folder.
 
 At the moment, remote_root must not contain slashes in the file names of its folders.
 
-    'Folder/Containing/Letters A/B'
+    remote_root => 'Folder/Containing/Letters A/B'
 
-Because folder "Letters A/B" contains a slash:
+is not existing because folder "Letters A/B" contains a slash:
 
     Folder
          `--Containing
@@ -207,11 +227,32 @@ This will be resolved to:
 
 The remote_root 'Example/root' may contain folders and files with slashes. These get replaced with underscores in the local file system.
 
-    remote_root = 'Example/root';
+    remote_root => 'Example/root';
 
     Example
           `--root
                 `--Letters A/B
 
+With local_root 'Google-Docs-Mirror' this locally becomes:
+
+    local_root => 'Gooogle-Docs-Mirror';
+
+    Google-Docs-Mirror
+                    `--Letters A_B
+
 (Net::Google::Drive::Simple::Mirror uses folder ID's as soon as it has found the remote_root and does not depend on folder file names.)
 
+=head1 AUTHOR
+
+Matthias Bloch, <lt>matthias at puffin ch<gt>
+
+=head1 COPYRIGHT AND LICENSE
+
+=Copyright (C) 2014 by :m)
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.8.8 or,
+at your option, any later version of Perl 5 you may have available.
+
+
+=cut
