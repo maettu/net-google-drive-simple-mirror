@@ -6,7 +6,7 @@ use DateTime::Format::RFC3339;
 use DateTime;
 use Carp;
 
-our $VERSION = '0.52';
+our $VERSION = '0.53';
 
 sub new{
     my ($class, %options) = @_;
@@ -197,6 +197,24 @@ download_condition: reference to a sub that takes the remote file name and the l
             return 1;
         }
     }
+
+download_condition can be used to change the behaviour of mirror(). I.e. do not download but list al remote files and what they became locally:
+
+    my $google_docs = Net::Google::Drive::Simple::Mirror->new(
+        remote_root   => 'Mirror/Test/Folder',
+        local_root    => 'test_data_mirror',
+        export_format => ['opendocument','html'],
+        # verbosely download nothing:
+        download_condition => sub {
+            my ($self, $remote_file, $local_file) = @_;
+            say "Remote:     ", $remote_file->title();
+            say "`--> Local: $local_file";
+            return 0;
+        }
+    );
+
+    $google_docs->mirror();
+
 
 force: download all files and replace local copies.
 

@@ -26,7 +26,7 @@ my $google_docs = Net::Google::Drive::Simple::Mirror->new(
     export_format => ['opendocument','html'],
     # verbosely download nothing:
     download_condition => sub {
-        my ($self, $remote_file, $local_file) =@_;
+        my ($self, $remote_file, $local_file) = @_;
         say "Remote:     ", $remote_file->title();
         say "`--> Local: $local_file";
         return 0;
